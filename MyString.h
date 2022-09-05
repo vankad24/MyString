@@ -41,6 +41,14 @@ private:
         }
     };
 
+    class CharSequence{
+        const char* str;
+        const size_t len;
+        CharSequence(char* str): str(str), len(strlen(str)) {}
+        CharSequence(const string &str): str(str.data()), len(str.length()) {}
+        CharSequence(const MyString &str): str(str._data), len(str._length) {}
+    };
+
     void init(const char* str, size_t length){
         _length = length;
         _array_size = _length+1;
@@ -56,20 +64,28 @@ private:
         memcpy(_data+len1, str2, sizeof(char)*(len2+1));
     }
 
-    void expand(size_t size){
-        if (size) {
-            if (_length + size > _length)_length += size;
-            else throw ExpandException();
+    /*void expand(size_t addingLen){
+        if (addingLen) {
+            if (_length + addingLen < _length)throw ExpandException();
+            while (_length+addingLen+1>_array_size)expand();
+            _length += addingLen;
+            _data[_length] = '\0';
+        }
+    }*/
+
+    void expand(size_t addingLen){
+        if (addingLen) {
+            if (_length + addingLen + 1 < _length)throw ExpandException();
             size_t new_size = _array_size;
             if (new_size==0)new_size = 1;
-            while (_length + 1 > new_size) {
+            while (_length + addingLen + 1 > new_size) {
                 new_size <<= 1u;
-                if (_array_size == ULONG_LONG_MAX)throw ExpandException();
-                else if (_array_size > new_size)new_size = ULONG_LONG_MAX;
+                if (new_size == ULONG_LONG_MAX)throw ExpandException();
+                else if (new_size < _array_size)new_size = ULONG_LONG_MAX;
             }
             if (new_size != _array_size) {
                 char *temp = new char[new_size];
-                memcpy(temp, _data, sizeof(char) * _array_size);
+                memcpy(temp, _data, sizeof(char) * _length);
                 delete[] _data;
                 _data = temp;
                 _array_size = new_size;
@@ -77,11 +93,16 @@ private:
         }
     }
 
+    void addLen(size_t addingLen){
+        expand(addingLen);
+        _length += addingLen;
+    }
+
     //str with \0, size without \0 char
     MyString& _append(const char* str, size_t size){
-        size_t old_len = _length;
         expand(size);
-        memcpy(_data+old_len,str,sizeof(char)*(size+1));
+        memcpy(_data+_length,str,sizeof(char)*(size+1));
+        _length+=size;
 //        strcat(_data, str);
         return *this;
     }
@@ -151,67 +172,69 @@ private:
     }
 
     MyString& _replaceAll(const char* oldString, size_t len1, const char* newString, size_t len2){
-        size_t new_len, i = 0;
-        std::vector<size_t> indexes;
-        while(i+len1 <= _length) {
-            if (_startWith(_data + i, oldString, len1)) {
-                indexes.push_back(i);
-                i+=len1;
-            } else ++i;
-        }
-
-        if (indexes.size()) {
-            new_len = _length + (len2 - len1) * indexes.size();
-            if (_array_size < new_len + 1)_array_size = new_len + 1;
-            char *temp = new char[_array_size];
-            size_t index = indexes[0], range;
-            memcpy(temp, _data, sizeof(char) * index);
-            for (size_t j = 0; j < indexes.size()-1; ++j) {
-                memcpy(temp+index, newString, sizeof(char)*len2);
-                index+=len2;
-                range = indexes[j+1]-indexes[j]-len1;
-                memcpy(temp+index, _data+indexes[j]+len1, sizeof(char)*range);
-                index+=range;
+        if (len1) {
+            size_t new_len, i = 0;
+            std::vector<size_t> indexes;
+            while (i + len1 <= _length) {
+                if (_startWith(_data + i, oldString, len1)) {
+                    indexes.push_back(i);
+                    i += len1;
+                } else ++i;
             }
-            memcpy(temp+index, newString, sizeof(char)*len2);
-            index+=len2;
-            size_t last = indexes.back();
-            memcpy(temp+index,_data+last+len1,sizeof(char)*(_length-last-len1));
 
-            _length = new_len;
-            temp[_length] = '\0';
-            delete[] _data;
-            _data = temp;
+            if (!indexes.empty()) {
+                new_len = _length + (len2 - len1) * indexes.size();
+                if (_array_size < new_len + 1)_array_size = new_len + 1;
+                char *temp = new char[_array_size];
+                size_t index = indexes[0], range;
+                memcpy(temp, _data, sizeof(char) * index);
+                for (size_t j = 0; j < indexes.size() - 1; ++j) {
+                    memcpy(temp + index, newString, sizeof(char) * len2);
+                    index += len2;
+                    range = indexes[j + 1] - indexes[j] - len1;
+                    memcpy(temp + index, _data + indexes[j] + len1, sizeof(char) * range);
+                    index += range;
+                }
+                memcpy(temp + index, newString, sizeof(char) * len2);
+                index += len2;
+                size_t last = indexes.back();
+                memcpy(temp + index, _data + last + len1, sizeof(char) * (_length - last - len1));
+
+                _length = new_len;
+                temp[_length] = '\0';
+                delete[] _data;
+                _data = temp;
+            }
         }
         return *this;
     }
 
     MyString& _replace(const char* oldString, size_t len1, const char* newString, size_t len2){
-        for (size_t i = 0; i + len1 <= _length; ++i) {
-            if (_startWith(_data + i, oldString, len1)) {
-                size_t oldLen = _length;
-                if (len2>len1)expand(len2-len1);
-                else _length-=len1-len2;
-                memcpy(_data+i+len2,_data+i+len1,sizeof(char)*(oldLen-i-len1));
-                memcpy(_data+i,newString,sizeof(char)*len2);
-                _data[_length] = '\0';
-                break;
+        if (len1) {
+            for (size_t i = 0; i + len1 <= _length; ++i) {
+                if (_startWith(_data + i, oldString, len1)) {
+                    if (len2 > len1)expand(len2 - len1);
+                    memcpy(_data + i + len2, _data + i + len1, sizeof(char) * (_length - i - len1));
+                    memcpy(_data + i, newString, sizeof(char) * len2);
+                    _length = _length - len1 + len2;
+                    _data[_length] = '\0';
+                    break;
+                }
             }
         }
         return *this;
     }
 
     MyString& _replaceLast(const char* oldString, size_t len1, const char* newString, size_t len2){
-        if (len1 <= _length) {
+        if (len1>0 && len1 <= _length) {
             size_t i = _length-len1+1;
             while ( i>0 ){
                 --i;
                 if (_startWith(_data + i, oldString, len1)) {
-                    size_t oldLen = _length;
-                    if (len2 > len1)expand(len2 - len1);
-                    else _length -= len1 - len2;
-                    memcpy(_data + i + len2, _data + i + len1, sizeof(char) * (oldLen - i - len1));
+                    if (len2>len1)expand(len2 - len1);
+                    memcpy(_data + i + len2, _data + i + len1, sizeof(char) * (_length - i - len1));
                     memcpy(_data + i, newString, sizeof(char) * len2);
+                    _length=_length-len1+len2;
                     _data[_length] = '\0';
                     break;
                 }
@@ -335,6 +358,24 @@ public:
         return _length;
     }
 
+    //change _array_size
+    void reserve(size_t new_size){
+        if (new_size > _array_size){
+            char* temp = new char[new_size];
+            memcpy(temp,_data,sizeof(char)*(_length+1));
+            delete[] _data;
+            _data = temp;
+            _array_size = new_size;
+        }
+    }
+
+    //change _length (_array_size)
+    void resize(size_t new_len){
+        if (_length < new_len)addLen(new_len - _length);
+        else _length = new_len;
+        _data[_length] = '\0';
+    }
+
     //support negative indexes
     char& operator [](long long index){
         size_t u_index;
@@ -439,10 +480,9 @@ public:
 
     //save append: str without \0, size without \0 char
     MyString& sappend(const char* str, size_t size){
-        size_t old_len = _length;
         expand(size);
-        memcpy(_data+old_len, str,sizeof(char)*size);
-        _data[_length]='\0';
+        memcpy(_data+_length, str,sizeof(char)*size);
+        _data[_length+=size]='\0';
         return *this;
     }
 
