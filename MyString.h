@@ -50,9 +50,6 @@ private:
         CharSequence(const string &str): data(str.data()), len(str.length()) {}
         CharSequence(const MyString &str): data(str._data), len(str._length) {}
         CharSequence(const char &c): data(&c), len(1) {}
-        ~CharSequence(){
-            std::cout<<"CharSequence died\n";
-        }
     };
 
     void init(const char* str, size_t length){
@@ -70,15 +67,6 @@ private:
         memcpy(_data+len1, str2, sizeof(char)*len2);
         _data[_length]='\0';
     }
-
-    /*void expand(size_t addingLen){
-        if (addingLen) {
-            if (_length + addingLen < _length)throw ExpandException();
-            while (_length+addingLen+1>_array_size)expand();
-            _length += addingLen;
-            _data[_length] = '\0';
-        }
-    }*/
 
     void expand(size_t addingLen){
         if (addingLen) {
@@ -251,7 +239,6 @@ private:
 
 public:
     static char* stringToChars(const string &s) {
-//        return strdup(s.c_str());
         char* chars = new char[s.size() + 1];
         memcpy(chars, s.data(), sizeof(char) * (s.size() + 1));
         return chars;
@@ -312,12 +299,10 @@ public:
 
     MyString(const char *chars) {
         init(chars,strlen(chars));
-//        std::cout<<"chars\n";
     }
 
     MyString(const string &str) {
         init(str.data(), str.length());
-//        std::cout<<"str\n";
     }
 
     MyString(const CharSequence& str, const CharSequence &str2) {
@@ -328,7 +313,7 @@ public:
         delete[] _data;
     }
 
-    inline size_t len(){
+    inline size_t length(){
         return _length;
     }
 
@@ -476,10 +461,6 @@ public:
 
     MyString substring(long long end){
         return substring(0, end);
-    }
-
-    inline bool isEmpty(){
-        return _length==0;
     }
 
     MyString& reverse(){
@@ -670,24 +651,24 @@ public:
             func(_data[i],i);
     }
 
-    int count(const function<bool(char c)> &func){
-        int k = 0;
+    size_t count(const function<bool(char c)> &func){
+        size_t k = 0;
         for (size_t i = 0; i < _length; ++i)
-            if (func(_data[i]))k++;
+            if (func(_data[i]))++k;
         return k;
     }
 
-    int count(const function<bool(char c, size_t index)> &func){
-        int k = 0;
+    size_t count(const function<bool(char c, size_t index)> &func){
+        size_t k = 0;
         for (size_t i = 0; i < _length; ++i)
-            if (func(_data[i], i))k++;
+            if (func(_data[i], i))++k;
         return k;
     }
 
     size_t count(char c){
         size_t k = 0;
         for (size_t i = 0; i < _length; ++i)
-            if (_data[i]==c)k++;
+            if (_data[i]==c)++k;
         return k;
     }
 
@@ -705,7 +686,68 @@ public:
         return true;
     }
 
+    //iterator
+    template<typename ValueType>
+    class MyIterator: public std::iterator<std::input_iterator_tag, ValueType>{
+        friend class MyString;//for private constructor
+    private:
+        ValueType* p;
+        MyIterator(ValueType* p):p(p) {}
 
+    public:
+        MyIterator(const MyIterator &it):p(it.p){}
+
+        bool operator!=(MyIterator const& other) const {
+            return p != other.p;;
+        }
+
+        bool operator==(MyIterator const& other) const{
+            return p == other.p;
+        }
+
+
+        MyIterator& operator++() {
+            ++p;
+            return *this;
+        }
+        MyIterator& operator--() {
+            --p;
+            return *this;
+        }
+
+        MyIterator& operator+=(int num) {
+            p+=num;
+            return *this;
+        }
+
+        MyIterator& operator-=(int num) {
+            p-=num;
+            return *this;
+        }
+
+        typename MyIterator<ValueType>::reference operator*() const{
+            return *p;
+        };
+    };
+
+    typedef MyIterator<char> iterator;
+    typedef MyIterator<const char> const_iterator;
+
+    iterator begin(){
+        return iterator(_data);
+    }
+
+    iterator end(){
+        return iterator(_data + _length);
+    }
+
+    const_iterator begin() const{
+        return const_iterator(_data);
+    }
+
+    const_iterator end() const{
+        return const_iterator(_data + _length);
+    }
 
 };
 
