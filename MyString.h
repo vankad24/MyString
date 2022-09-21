@@ -16,11 +16,11 @@ using std::function;
 using std::string;
 
 class MyString {
-
+typedef unsigned long long size;
 private:
 
-    std::size_t _length;
-    std::size_t _array_size;
+    size _length;
+    size _array_size;
     char* _data;
 
     struct ArrayIndexException : public std::exception {
@@ -45,21 +45,21 @@ private:
     class CharSequence{
     public:
         const char* data;
-        const size_t len;
+        const size len;
         CharSequence(const char* str): data(str), len(strlen(str)) {}
         CharSequence(const string &str): data(str.data()), len(str.length()) {}
         CharSequence(const MyString &str): data(str._data), len(str._length) {}
         CharSequence(const char &c): data(&c), len(1) {}
     };
 
-    void init(const char* str, size_t length){
+    void init(const char* str, size length){
         _length = length;
         _array_size = _length+1;
         _data = new char[_array_size];
         memcpy(_data, str, sizeof(char)*(_array_size));
     }
 
-    void init(const char* str1, size_t len1, const char* str2, size_t len2){
+    void init(const char* str1, size len1, const char* str2, size len2){
         _length = len1+len2;
         _array_size = _length+1;
         _data = new char[_array_size];
@@ -68,15 +68,15 @@ private:
         _data[_length]='\0';
     }
 
-    void expand(size_t addingLen){
+    void expand(size addingLen){
         if (addingLen) {
             if (_length + addingLen + 1 < _length)throw ExpandException();
-            size_t new_size = _array_size;
+            size new_size = _array_size;
             if (new_size==0)new_size = 1;
             while (_length + addingLen + 1 > new_size) {
                 new_size <<= 1u;
-                if (new_size == ULONG_LONG_MAX)throw ExpandException();
-                else if (new_size < _array_size)new_size = ULONG_LONG_MAX;
+                if (new_size == ULLONG_MAX)throw ExpandException();
+                else if (new_size < _array_size)new_size = ULLONG_MAX;
             }
             if (new_size != _array_size) {
                 char *temp = new char[new_size];
@@ -88,46 +88,46 @@ private:
         }
     }
 
-    void addLen(size_t addingLen){
+    void addLen(size addingLen){
         expand(addingLen);
         _length += addingLen;
     }
 
     //size without \0 char
-    MyString& _append(const char* str, size_t size){
+    MyString& _append(const char* str, size size){
         expand(size);
         memcpy(_data+_length,str,sizeof(char)*size);
         _data[_length+=size]='\0';
         return *this;
     }
 
-    bool _startWith(const char* main, const char* str, size_t len){
-        for (size_t i = 0; i < len; ++i) {
+    bool _startWith(const char* main, const char* str, size len){
+        for (size i = 0; i < len; ++i) {
             if (main[i]!=str[i])return false;
         }
         return true;
     }
 
-    bool _startWith(const char* str, size_t len){
+    bool _startWith(const char* str, size len){
         if (len>_length)return false;
-        for (size_t i = 0; i < len; ++i) {
+        for (size i = 0; i < len; ++i) {
             if (_data[i]!=str[i])return false;
         }
         return true;
     }
 
-    bool _endsWith(const char* str, size_t len){
+    bool _endsWith(const char* str, size len){
         if (len>_length)return false;
-        for (size_t i = 0; i < len; ++i) {
+        for (size i = 0; i < len; ++i) {
             if (_data[_length-len+i]!=str[i])return false;
         }
         return true;
     }
 
-    std::vector<MyString> _split(const char* str, size_t len){
+    std::vector<MyString> _split(const char* str, size len){
         if (len==0)throw ArrayIndexException();
         std::vector<MyString> v;
-        size_t k = 0,i;
+        size k = 0,i;
         char* ptr = _data;
 
         for (i = 0; i < _length-len+1;) {
@@ -146,14 +146,14 @@ private:
         return v;
     }
 
-    long long _indexOf(const char* str, size_t len, long long startIndex){
+    long long _indexOf(const char* str, size len, long long startIndex){
         if (startIndex<0|| startIndex >= _length) throw ArrayIndexException();
         for (; startIndex+len <= _length; ++startIndex)
             if (_startWith(_data + startIndex, str, len))return startIndex;
         return -1;
     }
 
-    long long _lastIndexOf(const char* str, size_t len, long long startIndex){
+    long long _lastIndexOf(const char* str, size len, long long startIndex){
         if (startIndex<0|| startIndex >= _length) throw ArrayIndexException();
         if (startIndex+len>_length)startIndex = _length-len;
         for (; startIndex >=0; --startIndex)
@@ -161,14 +161,14 @@ private:
         return -1;
     }
 
-    long long _lastIndexOf(const char* str, size_t len){
+    long long _lastIndexOf(const char* str, size len){
         return _lastIndexOf(str,len,_length-1);
     }
 
-    MyString& _replaceAll(const char* oldString, size_t len1, const char* newString, size_t len2){
+    MyString& _replaceAll(const char* oldString, size len1, const char* newString, size len2){
         if (len1) {
-            size_t new_len, i = 0;
-            std::vector<size_t> indexes;
+            size new_len, i = 0;
+            std::vector<size> indexes;
             while (i + len1 <= _length) {
                 if (_startWith(_data + i, oldString, len1)) {
                     indexes.push_back(i);
@@ -180,9 +180,9 @@ private:
                 new_len = _length + (len2 - len1) * indexes.size();
                 if (_array_size < new_len + 1)_array_size = new_len + 1;
                 char *temp = new char[_array_size];
-                size_t index = indexes[0], range;
+                size index = indexes[0], range;
                 memcpy(temp, _data, sizeof(char) * index);
-                for (size_t j = 0; j < indexes.size() - 1; ++j) {
+                for (size j = 0; j < indexes.size() - 1; ++j) {
                     memcpy(temp + index, newString, sizeof(char) * len2);
                     index += len2;
                     range = indexes[j + 1] - indexes[j] - len1;
@@ -191,7 +191,7 @@ private:
                 }
                 memcpy(temp + index, newString, sizeof(char) * len2);
                 index += len2;
-                size_t last = indexes.back();
+                size last = indexes.back();
                 memcpy(temp + index, _data + last + len1, sizeof(char) * (_length - last - len1));
 
                 _length = new_len;
@@ -203,9 +203,9 @@ private:
         return *this;
     }
 
-    MyString& _replace(const char* oldString, size_t len1, const char* newString, size_t len2){
+    MyString& _replace(const char* oldString, size len1, const char* newString, size len2){
         if (len1) {
-            for (size_t i = 0; i + len1 <= _length; ++i) {
+            for (size i = 0; i + len1 <= _length; ++i) {
                 if (_startWith(_data + i, oldString, len1)) {
                     if (len2 > len1)expand(len2 - len1);
                     memcpy(_data + i + len2, _data + i + len1, sizeof(char) * (_length - i - len1));
@@ -219,9 +219,9 @@ private:
         return *this;
     }
 
-    MyString& _replaceLast(const char* oldString, size_t len1, const char* newString, size_t len2){
+    MyString& _replaceLast(const char* oldString, size len1, const char* newString, size len2){
         if (len1>0 && len1 <= _length) {
-            size_t i = _length-len1+1;
+            size i = _length-len1+1;
             while ( i>0 ){
                 --i;
                 if (_startWith(_data + i, oldString, len1)) {
@@ -270,8 +270,8 @@ public:
         }
         if (minus)result.push_back('-');
         char temp;
-        size_t index, end = result.size() >> 1u;
-        for (size_t i = 0; i < end; ++i) {
+        size index, end = result.size() >> 1u;
+        for (size i = 0; i < end; ++i) {
             index = result.size() - i - 1;
             temp = result[i];
             result[i] = result[index];
@@ -286,7 +286,7 @@ public:
         _array_size = 0;
     }
 
-    MyString(std::size_t reserve_len) {
+    MyString(size reserve_len) {
         _length = 0;
         _array_size = reserve_len;
         _data = new char[reserve_len];
@@ -313,12 +313,12 @@ public:
         delete[] _data;
     }
 
-    inline size_t length(){
+    inline size length(){
         return _length;
     }
 
     //change _array_size
-    void reserve(size_t new_size){
+    void reserve(size new_size){
         if (new_size > _array_size){
             char* temp = new char[new_size];
             memcpy(temp,_data,sizeof(char)*(_length+1));
@@ -329,7 +329,7 @@ public:
     }
 
     //change _length (_array_size)
-    void resize(size_t new_len){
+    void resize(size new_len){
         if (_length < new_len)addLen(new_len - _length);
         else _length = new_len;
         _data[_length] = '\0';
@@ -337,7 +337,7 @@ public:
 
     //support negative indexes
     char& operator [](long long index){
-        size_t u_index;
+        size u_index;
         if (index<0)u_index=_length+index;
         else u_index = index;
         if (u_index >= _length)throw ArrayIndexException();
@@ -352,6 +352,13 @@ public:
 
     //cout print
     friend std::ostream& operator << (std::ostream &out, const MyString &str);
+
+    //cin
+    friend std::istream& operator >> (std::istream &in, MyString &str);
+
+    friend std::istream& getline(std::istream& in, MyString &str);
+
+
 
     template<class T>
     MyString operator +(const T &obj){
@@ -379,7 +386,7 @@ public:
         return substring(end);
     }
 
-    MyString& operator =(const MyString& str){
+    MyString& operator =(const MyString& str) {
         if (&str!=this){
             delete[] _data;
             init(str._data, str._length);
@@ -387,13 +394,13 @@ public:
         return *this;
     }
 
-    bool operator ==(const MyString& str){
+    bool operator ==(const MyString& str) const{
         return equals(str);
     }
     
-    bool equals(const MyString& str){
+    bool equals(const MyString& str) const{
         if (&str==this)return true;
-        for (size_t i = 0; i < _length; ++i) {
+        for (size i = 0; i < _length; ++i) {
             if (_data[i]!=str._data[i])return false;
         }
         return true;
@@ -420,11 +427,11 @@ public:
         return append(toString(obj));
     }
 
-    string getString() {
+    string toString() {
         return string(_data);
     }
 
-    char* getChars(){
+    char* toChars(){
         return _data;
     }
 
@@ -433,7 +440,7 @@ public:
     }
 
     MyString& repeat(unsigned int times){
-        size_t copy_len = _length;
+        size copy_len = _length;
         char* copy = new char[copy_len+1];
         memcpy(copy,_data,sizeof(char)*(copy_len+1));
         for (unsigned int i = 1; i < times; ++i) {
@@ -459,14 +466,14 @@ public:
         return MyString(end-start+1)._append(_data+start,end-start);
     }
 
-    MyString substring(long long end){
-        return substring(0, end);
+    MyString substring(long long start){
+        return substring(start, _length);
     }
 
     MyString& reverse(){
         char temp;
-        size_t index, end = _length >> 1u;
-        for (size_t i = 0; i < end; ++i) {
+        size index, end = _length >> 1u;
+        for (size i = 0; i < end; ++i) {
             index = _length - i - 1;
             temp = _data[i];
             _data[i] = _data[index];
@@ -506,7 +513,7 @@ public:
     }
 
     bool contains(char c){
-        for (size_t i = 0; i < _length; ++i) {
+        for (size i = 0; i < _length; ++i) {
             if (_data[i]==c)return true;
         }
         return false;
@@ -517,10 +524,10 @@ public:
     }
 
     MyString& leftStrip(const char c){
-        size_t shift = 0;
+        size shift = 0;
         while(shift < _length && _data[shift]==c) ++shift;
         _length-=shift;
-        for (size_t i = 0; i <= _length; ++i) {
+        for (size i = 0; i <= _length; ++i) {
             _data[i]=_data[i+shift];
         }
         return *this;
@@ -541,14 +548,14 @@ public:
     }
 
     MyString& toLowerCase(){
-        for (size_t i = 0; i < _length; ++i) {
+        for (size i = 0; i < _length; ++i) {
             _data[i] = (char)std::tolower(_data[i]);
         }
         return *this;
     }
 
     MyString& toUpperCase(){
-        for (size_t i = 0; i < _length; ++i) {
+        for (size i = 0; i < _length; ++i) {
             _data[i] = (char)std::toupper(_data[i]);
         }
         return *this;
@@ -595,10 +602,10 @@ public:
     }
 
     template<class T>
-    MyString join(const T* arr, size_t len){
+    MyString join(const T* arr, size len){
         if (len==0)return MyString();
         MyString result(toString(arr[0]));
-        for (size_t i = 1; i < len; ++i) {
+        for (size i = 1; i < len; ++i) {
             result.append(*this).append(toString(arr[i]));
         }
         return result;
@@ -617,7 +624,7 @@ public:
     }
 
     MyString& fill(char c){
-        for (size_t i = 0; i < _length; ++i) {
+        for (size i = 0; i < _length; ++i) {
             _data[i]=c;
         }
         return *this;
@@ -629,61 +636,93 @@ public:
         return *this;
     }
 
+    MyString& set(const CharSequence& str) {
+        if (str.data!=_data){
+            delete[] _data;
+            init(str.data, str.len);
+        }
+        return *this;
+    }
+
     void forEach(const function<void(char c)> &func){
-        for (size_t i = 0; i < _length; ++i)
+        for (size i = 0; i < _length; ++i)
             func(_data[i]);
     }
 
-    void forEach(const function<void(char c, size_t index)>& func){
-        for (size_t i = 0; i < _length; ++i)
+    void forEach(const function<void(char c, size index)>& func){
+        for (size i = 0; i < _length; ++i)
             func(_data[i],i);
     }
 
     template<typename U>
     void forEach(const function<U(char c)> &func){
-        for (size_t i = 0; i < _length; ++i)
+        for (size i = 0; i < _length; ++i)
             func(_data[i]);
     }
 
     template<typename U>
-    void forEach(const function<U(char c, size_t index)> &func){
-        for (size_t i = 0; i < _length; ++i)
+    void forEach(const function<U(char c, size index)> &func){
+        for (size i = 0; i < _length; ++i)
             func(_data[i],i);
     }
 
-    size_t count(const function<bool(char c)> &func){
-        size_t k = 0;
-        for (size_t i = 0; i < _length; ++i)
+    size count(const function<bool(char c)> &func){
+        size k = 0;
+        for (size i = 0; i < _length; ++i)
             if (func(_data[i]))++k;
         return k;
     }
 
-    size_t count(const function<bool(char c, size_t index)> &func){
-        size_t k = 0;
-        for (size_t i = 0; i < _length; ++i)
+    size count(const function<bool(char c, size index)> &func){
+        size k = 0;
+        for (size i = 0; i < _length; ++i)
             if (func(_data[i], i))++k;
         return k;
     }
 
-    size_t count(char c){
-        size_t k = 0;
-        for (size_t i = 0; i < _length; ++i)
+    size count(char c){
+        size k = 0;
+        for (size i = 0; i < _length; ++i)
             if (_data[i]==c)++k;
         return k;
     }
 
     bool any(const function<bool(char c)> &func){
-        for (size_t i = 0; i < _length; ++i) {
+        for (size i = 0; i < _length; ++i) {
             if (func(_data[i]))return true;
         }
         return false;
     }
 
     bool all(const function<bool(char c)> &func){
-        for (size_t i = 0; i < _length; ++i) {
+        for (size i = 0; i < _length; ++i) {
             if (!func(_data[i]))return false;
         }
         return true;
+    }
+
+    int toInt(){
+        return std::stoi(_data);
+    }
+
+    long long toLong(){
+        return std::stoul(_data);
+    }
+
+    unsigned long long toULong(){
+        return std::stoull(_data);
+    }
+
+    float toFloat(){
+        return std::stof(_data);
+    }
+
+    double toDouble(){
+        return std::stod(_data);
+    }
+
+    long double toLongDouble(){
+        return std::stold(_data);
     }
 
     //iterator
@@ -750,15 +789,29 @@ public:
     }
 
 };
-
-std::ostream &operator<<(std::ostream &out, const MyString &str) {
+std::ostream& operator <<(std::ostream &out, const MyString &str) {
     return out<<str._data;
+}
+
+std::istream& operator >>(std::istream &in, MyString &str) {
+    string temp;
+    in >> temp;
+    str.set(temp);
+    return in;
+}
+
+std::istream& getline(std::istream& in, MyString &str){
+    string temp;
+    std::getline(in, temp);
+    str.set(temp);
+    return in;
 }
 
 template<class T>
 MyString operator +(const T& obj, const MyString& str){
     return MyString(MyString::toString(obj)).append(str);
 }
+
 
 #endif //MY_IDEAS_MYSTRING_H
 
