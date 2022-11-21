@@ -11,14 +11,14 @@
 #include <cctype>
 #include <sstream>
 #include <functional>
-
+#include <vector>
 using std::function;
 using std::string;
 
 class MyString {
 typedef unsigned long long size;
 private:
-
+	
     size _length;
     size _array_size;
     char* _data;
