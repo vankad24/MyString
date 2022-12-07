@@ -124,15 +124,15 @@ private:
         return true;
     }
 
-    std::vector<MyString> _split(const char* str, size len){
+    std::vector<MyString> _split(const char* str, size len, bool removeEmpty){
         if (len==0)throw ArrayIndexException();
         std::vector<MyString> v;
-        size k = 0,i;
+        size k = 0, i;
         char* ptr = _data;
 
         for (i = 0; i < _length-len+1;) {
             if (_startWith(_data + i, str, len)){
-                if (k) v.push_back(MyString(k+1)._append(ptr,k));
+                if (!removeEmpty || k)v.push_back(MyString(k+1)._append(ptr,k));
                 ptr+=k+len;
                 k=0;
                 i+=len;
@@ -141,8 +141,7 @@ private:
                 ++i;
             }
         }
-        if (_data+_length!=ptr)v.push_back(MyString(ptr));
-
+        if (!removeEmpty || _data+_length!=ptr)v.push_back(MyString(ptr));
         return v;
     }
 
@@ -450,12 +449,8 @@ public:
         return *this;
     }
 
-    std::vector<MyString> split(const CharSequence &str){
-        return _split(str.data, str.len);
-    }
-
-    std::vector<MyString> split(){
-        return split(" ");
+    std::vector<MyString> split(const CharSequence &str = " ", bool removeEmpty=false){
+        return _split(str.data, str.len, removeEmpty);
     }
 
     MyString substring(long long start, long long end){
@@ -789,18 +784,18 @@ public:
     }
 
 };
-std::ostream& operator <<(std::ostream &out, const MyString &str) {
+inline std::ostream& operator <<(std::ostream &out, const MyString &str) {
     return out<<str._data;
 }
 
-std::istream& operator >>(std::istream &in, MyString &str) {
+inline std::istream& operator >>(std::istream &in, MyString &str) {
     string temp;
     in >> temp;
     str.set(temp);
     return in;
 }
 
-std::istream& getline(std::istream& in, MyString &str){
+inline std::istream& getline(std::istream& in, MyString &str){
     string temp;
     std::getline(in, temp);
     str.set(temp);
